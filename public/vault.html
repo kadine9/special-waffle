@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Link Vault ✦ Mermaid Ocean Edition</title>
+<style>
+  /* ── Google Fonts ─────────────────────────────────────────────── */
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Dancing+Script:wght@600&display=swap');
+
+  /* ── CSS Variables (Mermaid Ocean Theme Transformation) ──────── */
+  :root {
+    --teal:       #0d9488;
+    --teal-light: #f0fdfa;
+    --teal-deep:  #0f766e;
+    --cyan:       #06b6d4;
+    --cyan-light: #ecfeff;
+    --blue:       #0284c7;
+    --blue-light: #e0f2fe;
+    --blue-deep:  #0369a1;
+    --bg:         #ecfeff;
+    --surface:    #cffafe;
+    --card:       #ffffff;
+    --border:     rgba(13, 148, 136, 0.25);
+    --border-blue:rgba(2, 132, 199, 0.25);
+    --fg:         #083344;
+    --muted:      #155e75;
+    --destructive:#be123c;
+    --radius:     0.6rem;
+    --mono:       'Space Mono', monospace;
+    --display:    'Dancing Script', cursive;
+  }
+
+  /* ── Animations ──────────────────────────────────────────────── */
+  @keyframes floatUp {
+    0%   { transform: translateY(100vh) scale(0.5) translateX(0); opacity: 0; }
+    10%  { opacity: 0.8; }
+    90%  { opacity: 0.8; }
+    100% { transform: translateY(-10vh) scale(1.2) translateX(20px); opacity: 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-8px); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  @keyframes drift {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    33%  { transform: translate(15px, -20px) rotate(5deg); }
+    66%  { transform: translate(-15px, -10px) rotate(-5deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+
+  /* ── Reset ───────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--mono);
+    background: var(--bg);
+    background-image: linear-gradient(180deg, #ecfeff 0%, #cffafe 100%);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ── Background ambient bubbles ── */
+  .bubble-field {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bubble-field::before,
+  .bubble-field::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 10% 15%, #06b6d4 0%, transparent 100%),
+      radial-gradient(3px 3px at 25% 40%, #0d9488 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 40% 10%, #0284c7 0%, transparent 100%),
+      radial-gradient(2.5px 2.5px at 55% 60%, #0ea5e9 0%, transparent 100%),
+      radial-gradient(2px 2px at 70% 30%, #14b8a6 0%, transparent 100%),
+      radial-gradient(3px 3px at 80% 75%, #0891b2 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 90% 20%, #0d9488 0%, transparent 100%),
+      radial-gradient(2.5px 2.5px at 15% 70%, #0284c7 0%, transparent 100%),
+      radial-gradient(2px 2px at 60% 85%, #06b6d4 0%, transparent 100%),
+      radial-gradient(3px 3px at 35% 90%, #14b8a6 0%, transparent 100%);
+    background-size: 180px 180px;
+    opacity: 0.6;
+    animation: drift 20s linear infinite alternate;
+  }
+
+  /* ── Floating ocean emojis ── */
+  .ocean-bg {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+    font-size: 2.2rem;
+    animation: drift 18s ease-in-out infinite;
+    user-select: none;
+    filter: hue-rotate(10deg) brightness(1.1);
+  }
+  .ocean-bg:nth-child(1) { top: 8%; left: 4%;  animation-duration: 15s; font-size: 1.8rem; }
+  .ocean-bg:nth-child(2) { top: 55%; right: 6%; animation-duration: 19s; animation-delay: -3s; }
+  .ocean-bg:nth-child(3) { top: 25%; right: 18%;animation-duration: 22s; animation-delay: -7s; font-size: 1.5rem; }
+  .ocean-bg:nth-child(4) { bottom: 15%; left: 12%; animation-duration: 25s; animation-delay: -1s; }
+  .ocean-bg:nth-child(5) { top: 75%; left: 35%; animation-duration: 17s; animation-delay: -5s; font-size: 2.1rem; }
+  .ocean-bg:nth-child(6) { top: 12%; right: 40%; animation-duration: 23s; animation-delay: -4s; font-size: 1.4rem; }
+  .ocean-bg:nth-child(7) { bottom: 8%; right: 12%; animation-duration: 16s; animation-delay: -2s; font-size: 2.5rem; }
+  .ocean-bg:nth-child(8) { top: 40%; left: 22%; animation-duration: 20s; animation-delay: -10s; font-size: 1.7rem; }
+  .ocean-bg:nth-child(9) { top: 70%; right: 30%; animation-duration: 18s; animation-delay: -6s; font-size: 2.0rem; }
+  .ocean-bg:nth-child(10) { bottom: 30%; left: 3%; animation-duration: 24s; animation-delay: -8s; font-size: 1.6rem; }
+  .ocean-bg:nth-child(11) { top: 5%; left: 50%; animation-duration: 21s; animation-delay: -11s; font-size: 1.9rem; }
+  .ocean-bg:nth-child(12) { bottom: 45%; right: 45%; animation-duration: 27s; animation-delay: -13s; font-size: 1.5rem; }
+
+  /* ── Page wrapper ─────────────────────────────────────────────── */
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.875rem;
+    animation: fadeIn 0.5s ease both;
+  }
+  .header-icon {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    animation: float 3s ease-in-out infinite;
+  }
+  .header-icon svg { width: 1.3rem; height: 1.3rem; color: #fff; }
+  h1 {
+    font-family: var(--display);
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--teal), var(--blue), var(--teal));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 5s linear infinite;
+    letter-spacing: 1px;
+  }
+
+  /* ── Inputs & Selects ─────────────────────────────────────────── */
+  .input-wrap { position: relative; flex: 1; }
+  .input-icon {
+    position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--muted);
+    width: 1rem; height: 1rem;
+  }
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    background: #ffffff;
+    border: 1.5px solid rgba(6, 182, 212, 0.4);
+    border-radius: var(--radius);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.58rem 0.75rem 0.58rem 2.2rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  select {
+    padding-left: 0.75rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23155e75' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.2rem;
+  }
+  textarea {
+    padding-left: 0.75rem;
+    resize: vertical;
+    min-height: 4.5rem;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  }
+  input::placeholder, textarea::placeholder { color: rgba(21, 94, 117, 0.45); }
+
+  /* ── Filter section ──────────────────────────────────────────── */
+  .filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    animation: fadeIn 0.5s 0.05s ease both;
+  }
+  .filter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  @media (min-width: 520px) {
+    .filter-row { flex-direction: row; }
+  }
+
+  /* ── Status bar ──────────────────────────────────────────────── */
+  .status-bar {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.7rem; color: var(--muted);
+    animation: fadeIn 0.5s 0.1s ease both;
+  }
+  .status-dot {
+    width: 0.5rem; height: 0.5rem; border-radius: 50%; flex-shrink: 0;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .status-dot.connected    { background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+  .status-dot.disconnected { background: var(--destructive); box-shadow: 0 0 6px var(--destructive); }
+  .status-label.connected    { color: var(--teal-deep); font-weight: bold; }
+  .status-label.disconnected { color: var(--destructive); font-weight: bold; }
+  .status-count { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  /* ── Action bar ──────────────────────────────────────────────── */
+  .action-bar {
+    display: flex; gap: 0.5rem; overflow-x: auto;
+    padding-bottom: 0.25rem;
+    animation: fadeIn 0.5s 0.15s ease both;
+  }
+  .action-bar::-webkit-scrollbar { height: 2px; }
+  .action-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 1px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    border-radius: var(--radius); padding: 0.45rem 0.85rem;
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: all 0.15s;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--fg);
+    box-shadow: none;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--teal);
+    background: transparent;
+    box-shadow: none;
+  }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn svg { width: 0.85rem; height: 0.85rem; }
+  .btn-danger {
+    border-color: rgba(190, 18, 60, 0.3);
+    color: var(--destructive);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--destructive);
+    box-shadow: none;
+  }
+  .btn-primary {
+    background: transparent;
+    border-color: var(--teal);
+    color: var(--teal);
+    box-shadow: none;
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: none;
+    background: transparent;
+    border-color: var(--teal);
+  }
+
+  /* ── Link list & Items ───────────────────────────────────────── */
+  .link-list-wrap {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    max-height: 55vh;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.5s 0.2s ease both;
+  }
+  .link-list-wrap::-webkit-scrollbar { width: 4px; }
+  .link-list-wrap::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--teal), var(--blue));
+    border-radius: 2px;
+  }
+  .empty-state {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.5s ease both;
+  }
+  .link-row {
+    background: #ffffff;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    box-shadow: 0 2px 6px rgba(8, 51, 68, 0.04);
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .link-row:hover {
+    background: var(--teal-light);
+    border-color: var(--teal);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(13, 148, 136, 0.1);
+  }
+  .link-row.selected {
+    background: #ccfbf1 !important;
+    border-color: var(--teal) !important;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.3) !important;
+  }
+  .link-row-inner { display: flex; align-items: flex-start; gap: 0.5rem; }
+  .link-meta { flex: 1; min-width: 0; user-select: text; }
+  .link-title-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem; }
+  .link-title {
+    font-size: 0.8rem; font-weight: 700; color: var(--fg);
+    word-break: break-word;
+  }
+  
+  .ep-badge {
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--blue-deep);
+    border: 1px solid var(--border-blue);
+  }
+
+  .link-url {
+    font-size: 0.65rem;
+    color: var(--muted);
+    word-break: break-all;
+    line-height: 1.5;
+    margin-bottom: 0.2rem;
+  }
+  .link-date { font-size: 0.6rem; color: var(--muted); opacity: 0.8; }
+  .link-actions {
+    display: flex; flex-direction: column; gap: 0.3rem;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .link-row:hover .link-actions, .link-row.selected .link-actions { opacity: 1; }
+  .icon-btn {
+    width: 1.8rem; height: 1.8rem;
+    border-radius: 0.35rem;
+    border: 1.5px solid var(--border);
+    background: #ffffff;
+    color: var(--fg);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .icon-btn svg { width: 0.8rem; height: 0.8rem; }
+  .icon-btn:hover { border-color: var(--teal); background: var(--teal-light); }
+  .icon-btn.del { border-color: rgba(190, 18, 60, 0.3); color: var(--destructive); }
+  .icon-btn.del:hover { background: #fff1f2; border-color: var(--destructive); }
+
+  /* ── Group blocks (split view) ─────────────────────────────────── */
+  #link-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .group-block {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(5px);
+    overflow: hidden;
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.75rem;
+    background: linear-gradient(90deg, rgba(13, 148, 136, 0.08), rgba(2, 132, 199, 0.08));
+    border-bottom: 1.5px solid var(--border);
+    gap: 0.5rem;
+  }
+  .group-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .group-badge {
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    color: #fff;
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+  }
+  .group-actions {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+  .group-copy-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    border-radius: var(--radius); padding: 0.3rem 0.65rem;
+    font-family: var(--mono); font-size: 0.65rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    transition: all 0.15s;
+    border: 1.5px solid var(--border);
+    background: #ffffff;
+    color: var(--fg);
+    box-shadow: 0 1px 4px rgba(8, 51, 68, 0.06);
+  }
+  .group-copy-btn svg { width: 0.75rem; height: 0.75rem; }
+  .group-copy-btn:hover {
+    border-color: var(--teal);
+    background: var(--teal-light);
+    box-shadow: 0 3px 8px rgba(13, 148, 136, 0.15);
+  }
+  .group-block .link-list-wrap {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    animation: none;
+  }
+  .empty-state-small {
+    padding: 1.25rem 1rem;
+    font-size: 0.72rem;
+  }
+
+  /* ── Collapsible ─────────────────────────────────────────────── */
+  details {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 6px rgba(8, 51, 68, 0.04);
+  }
+  details summary {
+    cursor: pointer;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--fg);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    user-select: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  .chevron {
+    width: 0.85rem; height: 0.85rem;
+    color: var(--muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  details[open] .chevron { transform: rotate(90deg); }
+  .collapsible-body {
+    border-top: 1.5px solid var(--border);
+    padding: 0.875rem;
+    background: rgba(207, 250, 254, 0.3);
+  }
+  .collapsible-body p.hint {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 0.6rem;
+  }
+
+  /* ── Priority List ───────────────────────────────────────────── */
+  .priority-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; }
+  .priority-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: #ffffff; border: 1.5px solid var(--border);
+    padding: 0.4rem 0.6rem; border-radius: var(--radius);
+    transition: border-color 0.15s;
+  }
+  .priority-item:hover { border-color: var(--teal); }
+  .priority-word { flex: 1; font-weight: 700; font-size: 0.75rem; color: var(--fg); }
+  .prio-btn {
+    width: 1.5rem; height: 1.5rem; border-radius: 0.25rem;
+    background: #ffffff; border: 1.5px solid rgba(6, 182, 212, 0.3); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .prio-btn svg { width: 0.8rem; height: 0.8rem; }
+  .prio-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); background: var(--teal-light); }
+  .prio-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+  .prio-btn.del:hover:not(:disabled) { color: var(--destructive); border-color: rgba(190, 18, 60, 0.3); background: #fff1f2; }
+
+  /* ── Add manually ────────────────────────────────────────────── */
+  .add-form { display: flex; flex-direction: column; gap: 0.5rem; }
+  .add-form textarea { padding-left: 0.75rem; }
+  .add-btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+  /* ── Bookmarklet ─────────────────────────────────────────────── */
+  .bookmarklet-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1.5px solid var(--border);
+    background: var(--teal-light);
+    color: var(--teal-deep);
+    border-radius: var(--radius);
+    padding: 0.45rem 0.85rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: grab;
+    text-decoration: none;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 2px 5px rgba(13, 148, 136, 0.1);
+  }
+  .bookmarklet-link:active { cursor: grabbing; }
+  .bookmarklet-link svg { width: 0.8rem; height: 0.8rem; }
+  .bookmarklet-label {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin-bottom: 0.3rem;
+  }
+  pre.bm-code {
+    max-height: 8rem; overflow: auto;
+    background: #ffffff;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.65rem;
+    font-size: 0.6rem;
+    color: var(--muted);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  pre.bm-code::-webkit-scrollbar { height: 3px; }
+  pre.bm-code::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── Toasts ──────────────────────────────────────────────────── */
+  #toast-stack {
+    position: fixed; bottom: 1.25rem; left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+    pointer-events: none;
+    width: min(22rem, 90vw);
+  }
+  .toast {
+    width: 100%;
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius);
+    font-size: 0.72rem; font-weight: 700;
+    pointer-events: auto;
+    animation: toastIn 0.3s ease both;
+    border: 1.5px solid;
+    box-shadow: 0 4px 12px rgba(8, 51, 68, 0.15);
+  }
+  .toast.ok {
+    background: #ffffff;
+    border-color: var(--teal);
+    color: var(--teal-deep);
+  }
+  .toast.error {
+    background: #ffffff;
+    border-color: var(--destructive);
+    color: var(--destructive);
+  }
+  .toast svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
+
+  /* ── Animated Bubbles ────────────────────────────────────────── */
+  .bubble {
+    position: fixed;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(6, 182, 212, 0.2));
+    pointer-events: none;
+    z-index: 0;
+    animation: floatUp linear infinite;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.__SUPA_URL__ = "https://wrieopknjngeqkzekdjp.supabase.co";
+  window.__SUPA_KEY__ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyaWVvcGtuam5nZXFremVrZGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUwNjUsImV4cCI6MjA5ODA0MTA2NX0.NH63lUiAvYLh1sA89j8dzsb12WDoPATSCFR63f3-TA8";
+</script>
+</head>
+<body>
+
+<div class="bubble-field"></div>
+<div class="ocean-bg">🫧</div>
+<div class="ocean-bg">🐚</div>
+<div class="ocean-bg">🧜‍♀️</div>
+<div class="ocean-bg">🐠</div>
+<div class="ocean-bg">🌊</div>
+<div class="ocean-bg">🫧</div>
+<div class="ocean-bg">🐚</div>
+<div class="ocean-bg">🐬</div>
+<div class="ocean-bg">🫧</div>
+<div class="ocean-bg">🧜‍♀️</div>
+<div class="ocean-bg">🌊</div>
+<div class="ocean-bg">🐠</div>
+
+<div id="app">
+
+  <header>
+    <span class="header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12c2 0 4-4 6-4s4 4 6 4 4-4 6-4"/>
+        <path d="M2 18c2 0 4-4 6-4s4 4 6 4 4-4 6-4"/>
+      </svg>
+    </span>
+    <h1>✦ Ocean Link Vault ✦</h1>
+  </header>
+
+  <section class="filter-section" aria-label="Filters">
+    <div class="filter-row">
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="filter-show" placeholder="show name (e.g. the wire)" aria-label="Filter by show name" />
+      </div>
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="filter-term" placeholder="all keywords (e.g. S03 1080p)" aria-label="Filter by keywords" />
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="filter-or" placeholder="exact keywords — match ANY (e.g. 2160p REPACK)" aria-label="Filter exact OR" />
+      </div>
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="filter-only" placeholder="only exact phrase (e.g. 1080p, 2160p)" aria-label="Show only exact phrase" />
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="filter-except" placeholder="except exact phrase (e.g. cam, telesync)" aria-label="Exclude exact phrase" />
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="input-wrap" style="flex: 2;">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <input type="number" id="filter-hide-count" placeholder="Number of links to hide (un-copyable)..." min="0" aria-label="Number of items to exclude" value="" />
+      </div>
+      <div class="input-wrap" style="flex: 1;">
+        <select id="filter-hide-position" aria-label="Exclusion target direction">
+          <option value="top">From Top</option>
+          <option value="bottom">From Bottom (Last)</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="input-wrap" style="flex: 1;">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+        <input type="number" id="split-count" placeholder="Split into N groups..." min="2" max="500" aria-label="Number of groups to split into" value="" />
+      </div>
+      <div class="input-wrap" style="flex: 1;">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <input type="number" id="split-per-group" placeholder="...or amount per group" min="1" max="5000" aria-label="Number of links per group" value="" />
+      </div>
+    </div>
+  </section>
+
+  <div class="status-bar">
+    <span class="status-dot disconnected" id="status-dot"></span>
+    <span class="status-label disconnected" id="status-label">Loading...</span>
+    <span class="status-count" id="status-count">0 / 0 shown</span>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn" id="btn-copy-all" onclick="handleCopyAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+      Copy All
+    </button>
+    <button class="btn" onclick="handleSortEpisode()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      Sort by Episode
+    </button>
+    <button class="btn" id="btn-dedupe" onclick="handleDedupe()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M6 20V10l6-8 6 8v10"/><path d="M10 20v-5h4v5"/></svg>
+      <span class="btn-label">Dedupe</span>
+    </button>
+    <button class="btn" id="btn-exact-dedupe" onclick="handleExactDedupe()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+      <span class="btn-label">Exact Dedupe</span>
+    </button>
+    <button class="btn btn-danger" onclick="handlePurgeFiltered()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/><line x1="4" y1="20" x2="20" y2="4"/></svg>
+      Purge Filtered
+    </button>
+    <button class="btn btn-danger" onclick="handlePurge()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+      Purge Vault
+    </button>
+  </div>
+
+  <div id="link-container"></div>
+
+  <details>
+    <summary>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      Dedupe Priority Words
+    </summary>
+    <div class="collapsible-body">
+      <p class="hint">
+        Choose how the Dedupe button picks which copy of a duplicate episode to keep.
+      </p>
+      <div class="add-btn-row" style="flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem;"><input type="radio" name="dedupe-mode" value="priority" checked onchange="setDedupeMode(this.value)"> Priority words</label>
+        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem;"><input type="radio" name="dedupe-mode" value="keep-first" onchange="setDedupeMode(this.value)"> Keep first (as shown)</label>
+        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem;"><input type="radio" name="dedupe-mode" value="keep-last" onchange="setDedupeMode(this.value)"> Keep last (as shown)</label>
+        <button class="btn" type="button" onclick="unhideAll()" style="margin-left:auto;">Unhide all</button>
+      </div>
+      <p class="hint">
+        When in <em>Priority words</em> mode, the copy whose link or title contains the highest-ranking word is kept. Use arrows to rank.
+      </p>
+      
+      <div id="priority-container" class="priority-list"></div>
+      
+      
+      <div class="add-btn-row">
+        <div class="input-wrap" style="flex: 1;">
+          <input type="text" id="new-priority-word" placeholder="Add priority keyword..." aria-label="Add priority word" style="padding-left:0.75rem" onkeydown="if(event.key==='Enter') addPriorityWord()" />
+        </div>
+        <button class="btn btn-primary" onclick="addPriorityWord()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5v14"/></svg>
+          Add
+        </button>
+      </div>
+
+      <p class="hint" style="margin-top:0.75rem;">
+        Hide any link whose title or URL contains a specific phrase (case-insensitive). Only matching links are hidden — nothing else changes. Refresh to restore.
+      </p>
+      <div class="add-btn-row">
+        <div class="input-wrap" style="flex: 1;">
+          <input type="text" id="ignore-phrase" placeholder="Phrase to hide (e.g. sample)" aria-label="Phrase to hide" style="padding-left:0.75rem" onkeydown="if(event.key==='Enter') hideByPhrase()" />
+        </div>
+        <button class="btn" type="button" onclick="hideByPhrase()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.77 19.77 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          Hide matches
+        </button>
+      </div>
+
+    </div>
+
+  </details>
+
+  <details id="add-panel" open>
+    <summary>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      Add Links Manually
+    </summary>
+    <div class="collapsible-body">
+      <div class="add-form">
+        <div class="input-wrap">
+          <input type="text" id="add-title" placeholder="Title (auto-filled from link if blank)" aria-label="Title" style="padding-left:0.75rem" />
+        </div>
+        <textarea id="add-url" rows="3" placeholder="https://... (Supports multiple links attached together or on new lines)" aria-label="HTTPS URLs"></textarea>
+        <div class="add-btn-row">
+          <button class="btn btn-primary" onclick="handleAdd()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5v14"/></svg>
+            Add Single Link
+          </button>
+          <button class="btn" onclick="handlePasteAdd()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M6 20V10l6-8 6 8v10"/><path d="M10 20v-5h4v5"/></svg>
+            Parse & Add All Pasted
+          </button>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      Browser Integration
+    </summary>
+    <div class="collapsible-body">
+      <p class="hint">
+        Drag the button below to your bookmarks bar. On any page with http(s)
+        links, click it to scan the page and output them as a list to paste into the app.
+      </p>
+      <a id="bookmarklet-btn" href="#" class="bookmarklet-link" draggable="true" onclick="return false">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c-2-3-7-5-9-2s1 8 4 9c1.5.5 3-1 5-7zm0 0c2-3 7-5 9-2s-1 8-4 9c-1.5.5-3-1-5-7z"/></svg>
+        + Copy HTTPS Links
+      </a>
+      <p class="bookmarklet-label">Bookmarklet source</p>
+      <pre class="bm-code" id="bm-code-pre"></pre>
+    </div>
+  </details>
+
+</div>
+
+<div id="toast-stack"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let links = [];
+let priorityWords = ['repack', 'proper', '2160p', '1080p'];
+let dedupeMode = 'priority'; // 'priority' | 'keep-first' | 'keep-last'
+let hiddenIds = new Set(); // session-only; cleared on refresh
+let connectedStatus = false;
+let syncingState = false;
+
+// ── Multi-Select State ──────────────────────────────────────────────────
+let selectedIds = new Set();
+let longPressTimer = null;
+let longPressed = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('link-container');
+  if (!container) return;
+
+  container.addEventListener('click', handleRowClick);
+
+  renderPriorityList();
+  checkUrlForImport(); 
+  initializeDataLoad();
+});
+
+function handleRowClick(e) {
+  if (e.target.closest('.link-actions')) return;
+  if (e.target.closest('a')) return;
+  const row = e.target.closest('.link-row');
+  if (!row) return;
+  e.preventDefault();
+  e.stopPropagation();
+  toggleSelection(String(row.dataset.id));
+}
+
+function updateSelectionButton() {
+  const copyAllBtn = document.getElementById('btn-copy-all');
+  if (!copyAllBtn) return;
+  if (selectedIds.size > 0) {
+    copyAllBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy Selected (${selectedIds.size})`;
+    copyAllBtn.classList.add('btn-primary');
+  } else {
+    copyAllBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy All`;
+    copyAllBtn.classList.remove('btn-primary');
+  }
+}
+
+function toggleSelection(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  
+  const row = document.querySelector(`.link-row[data-id="${id}"]`);
+  if (row) {
+    if (selectedIds.has(id)) row.classList.add('selected');
+    else row.classList.remove('selected');
+  }
+  updateSelectionButton();
+}
+
+const PRIO_STORAGE_KEY = 'ocean-vault-priority';
+const LOCAL_STORAGE_KEY = 'ocean-vault-local-links';
+
+function loadPriority() {
+  try {
+    const raw = localStorage.getItem(PRIO_STORAGE_KEY);
+    if (raw) priorityWords = JSON.parse(raw);
+  } catch { loadDefaultPriority(); }
+}
+function loadDefaultPriority() {
+  priorityWords = ['repack', 'proper', '2160p', '1080p'];
+}
+function savePriority() {
+  try { localStorage.setItem(PRIO_STORAGE_KEY, JSON.stringify(priorityWords)); } catch {}
+}
+loadPriority();
+
+// ── Supabase ────────────────────────────────────────────────────────────
+const supa = window.supabase.createClient(window.__SUPA_URL__, window.__SUPA_KEY__);
+const TABLE = 'vault_links';
+
+async function cloudFetchAll() {
+  const { data, error } = await supa.from(TABLE).select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return (data || []).map(r => ({ id: r.id, title: r.title, url: r.url, createdAt: r.created_at }));
+}
+async function cloudInsert(newItems) {
+  const rows = newItems.map(i => ({ id: i.id, title: i.title, url: i.url, created_at: i.createdAt }));
+  const { error } = await supa.from(TABLE).insert(rows);
+  if (error) { console.error(error); pushToast('Cloud insert failed', 'error'); }
+  return newItems;
+}
+async function cloudDelete(idsToRemove) {
+  if (!idsToRemove.length) return;
+  const { error } = await supa.from(TABLE).delete().in('id', idsToRemove.map(String));
+  if (error) { console.error(error); pushToast('Cloud delete failed', 'error'); }
+}
+// Back-compat aliases (fire-and-forget; UI updates optimistically)
+function localInsert(items) { cloudInsert(items); return items; }
+function localDelete(ids) { cloudDelete(ids); }
+
+// ── Initialization ────────────────────────────────────────────────────────
+async function initializeDataLoad() {
+  setSyncing(true); render();
+  try {
+    links = await cloudFetchAll();
+    links.forEach(computeLinkCache);
+    connectedStatus = true;
+  } catch (e) {
+    console.error(e);
+    connectedStatus = false;
+  }
+  setSyncing(false);
+  render();
+}
+
+
+// ── Highly Accurate URL Parsing Engine ───────────────────────────────────
+/**
+ * Safely parses multiple and attached http/https links across newlines, spaces,
+ * or even direct continuous attachments (e.g., https://fonts.googleapis.comhttps://offcloud.com)
+ */
+function extractLinks(text) {
+  if (!text) return [];
+  
+  // Step 1: Normalize any vertical line/tabs/newlines into spaces
+  const cleanInput = text.replace(/[\r\n\t]/g, ' ').trim();
+  if (!cleanInput) return [];
+
+  // Step 2: Use regex to extract any segments beginning with http:// or https://.
+  // The match stops right before the next "http://" or "https://" sequence, or at a space/end of string.
+  const regex = /https?:\/\/[^\s]+?(?=(?:https?:\/\/|$|\s))/gi;
+  const matches = cleanInput.match(regex);
+  
+  if (!matches) return [];
+
+  // Step 3: Trim individual values and drop trailing slashes/commas/spaces
+  return matches.map(u => u.trim()).filter(u => u.length > 8);
+}
+
+function parseTitle(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    let name = parts.length > 0 ? parts[parts.length - 1] : u.hostname;
+    try { name = decodeURIComponent(name); } catch(e){}
+    if (name.length < 3 && u.hostname) name = u.hostname;
+    return name.replace(/[._]+/g, ' ').trim();
+  } catch (e) {
+    return url.slice(0, 30) + '...';
+  }
+}
+
+function isValidLink(v) {
+  const s = (v || '').trim();
+  return /^https?:\/\/.+/i.test(s);
+}
+
+function parseSeasonEpisode(title) {
+  if (!title) return null;
+  let m = title.match(/s(\d{1,2})[\s._-]*e(\d{1,3})/i);
+  if (m) return { season: parseInt(m[1], 10), episode: parseInt(m[2], 10) };
+  m = title.match(/\b(\d{1,2})x(\d{1,3})\b/i);
+  if (m) return { season: parseInt(m[1], 10), episode: parseInt(m[2], 10) };
+  return null;
+}
+
+function stripShowName(title) {
+  if (!title) return '';
+  let name = title.replace(/[._]+/g, ' ');
+  const seMatch = name.match(/\b(s\d{1,4}[\s._-]*e\d{1,4}|season[\s._-]*\d{1,4}|s\d{1,4}\b|\d{1,2}x\d{1,4})/i);
+  if (seMatch && seMatch.index !== undefined) {
+    name = name.slice(0, seMatch.index);
+  }
+  return name.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function episodeKey(title) {
+  const show = stripShowName(title);
+  const se = parseSeasonEpisode(title);
+  if (se) return `${show}|s${String(se.season).padStart(2,'0')}e${String(se.episode).padStart(2,'0')}`;
+  return show || title.toLowerCase().trim();
+}
+
+// ── Filtering & Exclusions ──────────────────────────────────────────────────
+function getFiltered() {
+  const show  = (document.getElementById('filter-show').value  || '').trim().toLowerCase();
+  const terms = (document.getElementById('filter-term').value  || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const orTerms = (document.getElementById('filter-or').value  || '').trim().split(/\s+/).map(t=>t.trim().toLowerCase()).filter(Boolean);
+  
+  const onlyPhrases = (document.getElementById('filter-only').value || '')
+    .split(',')
+    .map(p => p.trim().toLowerCase())
+    .filter(Boolean);
+    
+  const exceptPhrases = (document.getElementById('filter-except').value || '')
+    .split(',')
+    .map(p => p.trim().toLowerCase())
+    .filter(Boolean);
+
+  let result = links.filter(l => !hiddenIds.has(String(l.id)));
+
+  result = result.filter(l => {
+    if (onlyPhrases.length > 0) {
+      if (!onlyPhrases.some(phrase => l._titleLower.includes(phrase))) return false;
+    }
+    if (exceptPhrases.length > 0) {
+      if (exceptPhrases.some(phrase => l._titleLower.includes(phrase))) return false;
+    }
+    if (show && !l._showName.includes(show)) return false;
+    if (terms.length) {
+      for (const t of terms) {
+        if (!l._searchText.includes(t)) return false;
+      }
+    }
+    if (orTerms.length && !orTerms.some(t => l._searchText.includes(t))) return false;
+    return true;
+  });
+
+  const hideCount = parseInt(document.getElementById('filter-hide-count').value, 10);
+  const hidePos = document.getElementById('filter-hide-position').value;
+  if (!isNaN(hideCount) && hideCount > 0) {
+    if (hidePos === 'top') {
+      result = result.slice(hideCount);
+    } else if (hidePos === 'bottom') {
+      result = result.slice(0, Math.max(0, result.length - hideCount));
+    }
+  }
+
+  return result;
+}
+
+function isFilterActive() {
+  const textFiltersActive = ['filter-show','filter-term','filter-or','filter-only','filter-except'].some(id => (document.getElementById(id).value||'').trim() !== '');
+  const hideCount = parseInt(document.getElementById('filter-hide-count').value, 10);
+  return textFiltersActive || (!isNaN(hideCount) && hideCount > 0);
+}
+
+// ── Split helpers ─────────────────────────────────────────────────────────
+function getSplitCount() {
+  const val = parseInt(document.getElementById('split-count').value, 10);
+  return (!isNaN(val) && val >= 2) ? val : 0;
+}
+function getPerGroup() {
+  const val = parseInt(document.getElementById('split-per-group').value, 10);
+  return (!isNaN(val) && val >= 1) ? val : 0;
+}
+
+function splitIntoGroups(arr, n) {
+  if (!n || n < 1) return [arr];
+  const groups = [];
+  const size = Math.ceil(arr.length / n);
+  for (let i = 0; i < n; i++) {
+    groups.push(arr.slice(i * size, (i + 1) * size));
+  }
+  return groups.filter(g => g.length > 0);
+}
+function splitByChunkSize(arr, size) {
+  if (!size || size < 1) return [arr];
+  const groups = [];
+  for (let i = 0; i < arr.length; i += size) groups.push(arr.slice(i, i + size));
+  return groups;
+}
+
+
+// ── Render UI ─────────────────────────────────────────────────────────────
+function render() {
+  const filtered = getFiltered();
+  const splitN = getSplitCount();
+  const perGroup = getPerGroup();
+
+  const dot   = document.getElementById('status-dot');
+  const label = document.getElementById('status-label');
+  dot.className   = 'status-dot ' + (connectedStatus ? 'connected' : 'disconnected');
+  label.className = 'status-label ' + (connectedStatus ? 'connected' : 'disconnected');
+  
+  if (syncingState) {
+    label.textContent = 'Syncing...';
+  } else {
+    label.textContent = connectedStatus ? 'Vault Synced' : 'Offline / Errors';
+  }
+
+  document.getElementById('status-count').textContent = `${filtered.length} / ${links.length} shown`;
+  
+  const dedupeLbl = document.querySelector('#btn-dedupe .btn-label');
+  if (dedupeLbl) dedupeLbl.textContent = isFilterActive() ? 'Dedupe (filtered)' : 'Dedupe';
+  
+  const exactLbl = document.querySelector('#btn-exact-dedupe .btn-label');
+  if (exactLbl) exactLbl.textContent = isFilterActive() ? 'Exact (filtered)' : 'Exact Dedupe';
+
+  updateSelectionButton();
+
+  const container = document.getElementById('link-container');
+
+  if (splitN === 0 && perGroup === 0) {
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="empty-state">✦ No links found. Dive in and add some below! 🧜‍♀️ ✦</div>`;
+      return;
+    }
+    container.innerHTML = `<ul class="link-list-wrap" role="list">${filtered.map(linkRowHTML).join('')}</ul>`;
+    return;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">✦ No links match the current oceanic filters. ✦</div>`;
+    return;
+  }
+
+  const groups = perGroup > 0
+    ? splitByChunkSize(filtered, perGroup)
+    : splitIntoGroups(filtered, splitN);
+  container.innerHTML = groups.map((group, idx) => renderGroupBlock(group, idx + 1, groups.length)).join('');
+}
+
+function renderGroupBlock(items, groupNum, totalGroups) {
+  const headerLabel = `Group ${groupNum} <span style="font-weight:400;color:var(--muted);font-size:0.65rem;">of ${totalGroups}</span>`;
+  const countBadge = `<span class="group-badge">${items.length} link${items.length !== 1 ? 's' : ''}</span>`;
+  const listHTML = items.length === 0
+    ? `<div class="empty-state empty-state-small">No links in this group.</div>`
+    : `<ul class="link-list-wrap" role="list">${items.map(linkRowHTML).join('')}</ul>`;
+
+  return `
+  <div class="group-block">
+    <div class="group-header">
+      <div class="group-title">🌊 ${headerLabel} ${countBadge}</div>
+      <div class="group-actions">
+        <button class="group-copy-btn" onclick='copyGroupLinks(${JSON.stringify(items.map(l => l.url))}, ${groupNum})'>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          Copy Group ${groupNum}
+        </button>
+      </div>
+    </div>
+    ${listHTML}
+  </div>`;
+}
+
+function linkRowHTML(l) {
+  const sel = selectedIds.has(String(l.id)) ? ' selected' : '';
+  return `<li class="link-row${sel}" data-id="${l.id}">${l._html}</li>`;
+}
+
+const _ESC = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
+function escHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => _ESC[c]);
+}
+
+function computeLinkCache(l) {
+  const se = parseSeasonEpisode(l.title);
+  const epBadge = se
+    ? `<span class="ep-badge">S${String(se.season).padStart(2,'0')}E${String(se.episode).padStart(2,'0')}</span>`
+    : '';
+  const date = l.createdAt ? new Date(l.createdAt).toLocaleString() : '';
+  const titleEsc  = escHtml(l.title || '(untitled)');
+  const urlEsc = escHtml(l.url);
+
+  l._html = `<div class="link-row-inner">
+      <div class="link-meta">
+        <div class="link-title-wrap">
+          <span class="link-title">${titleEsc}</span>${epBadge}
+        </div>
+        <p class="link-url">${urlEsc}</p>
+        <p class="link-date">${escHtml(date)}</p>
+      </div>
+      <div class="link-actions">
+        <button class="icon-btn" data-url="${urlEsc}" onclick="copyText(this.dataset.url,'Link copied')" aria-label="Copy link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </button>
+        <button class="icon-btn del" onclick="handleDelete('${l.id}')" aria-label="Delete link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  l._searchText = `${l.title} ${l.url}`.toLowerCase();
+  l._showName   = stripShowName(l.title);
+  l._titleLower = (l.title || '').toLowerCase();
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function copyGroupLinks(urls, groupNum) {
+  if (!urls || !urls.length) { pushToast('Nothing to copy', 'error'); return; }
+  copyText(urls.join('\n'), `Copied Group ${groupNum} — ${urls.length} link(s)`);
+}
+
+// ── Priority List Render ──────────────────────────────────────────────────
+function renderPriorityList() {
+  const container = document.getElementById('priority-container');
+  if(!priorityWords.length) {
+      container.innerHTML = '<div class="empty-state" style="padding: 1rem; font-size: 0.7rem;">No priority words set.</div>';
+      return;
+  }
+  container.innerHTML = priorityWords.map((word, index) => `
+    <div class="priority-item">
+      <span class="priority-word">${escHtml(word.toUpperCase())}</span>
+      <button class="prio-btn" onclick="movePriority(${index}, -1)" ${index === 0 ? 'disabled' : ''} aria-label="Move up">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
+      </button>
+      <button class="prio-btn" onclick="movePriority(${index}, 1)" ${index === priorityWords.length - 1 ? 'disabled' : ''} aria-label="Move down">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button class="prio-btn del" onclick="removePriority(${index})" aria-label="Remove">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function movePriority(index, dir) {
+  if (index + dir < 0 || index + dir >= priorityWords.length) return;
+  const temp = priorityWords[index];
+  priorityWords[index] = priorityWords[index + dir];
+  priorityWords[index + dir] = temp;
+  savePriority();
+  renderPriorityList();
+}
+
+function removePriority(index) {
+  priorityWords.splice(index, 1);
+  savePriority();
+  renderPriorityList();
+}
+
+function addPriorityWord() {
+  const input = document.getElementById('new-priority-word');
+  const word = input.value.trim().toLowerCase();
+  if (word && !priorityWords.includes(word)) {
+      priorityWords.push(word);
+      savePriority();
+      renderPriorityList();
+      input.value = '';
+  }
+}
+
+function setDedupeMode(mode) {
+  dedupeMode = mode;
+}
+
+function hideByPhrase() {
+  const input = document.getElementById('ignore-phrase');
+  const raw = (input?.value || '').trim();
+  if (!raw) { pushToast('Enter a phrase first'); return; }
+  const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  // split on commas or newlines for multiple phrases; each phrase matches loosely
+  const phrases = raw.split(/[,\n]+/).map(p => norm(p)).filter(Boolean);
+  if (!phrases.length) { pushToast('Enter a phrase first'); return; }
+  let n = 0;
+  for (const l of links) {
+    if (hiddenIds.has(String(l.id))) continue;
+    const hay = norm(`${l.title || ''} ${l.url || ''}`);
+    if (phrases.some(p => hay.includes(p))) { hiddenIds.add(String(l.id)); n++; }
+  }
+  if (!n) { pushToast('No matches found'); return; }
+  if (input) input.value = '';
+  pushToast(`Hid ${n} link(s) matching "${raw}" — refresh to restore`, 'ok');
+  render();
+}
+
+function unhideAll() {
+
+  if (!hiddenIds.size) { pushToast('Nothing hidden'); return; }
+  const n = hiddenIds.size;
+  hiddenIds.clear();
+  pushToast(`Restored ${n} hidden link(s)`, 'ok');
+  render();
+}
+
+// ── Toast Stack ───────────────────────────────────────────────────────────
+function pushToast(message, kind = 'ok') {
+  const stack = document.getElementById('toast-stack');
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  const icon = kind === 'ok'
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
+  el.innerHTML = `${icon}<span>${escHtml(message)}</span>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── UI Actions & Sync Hooks ───────────────────────────────────────────────
+
+function setSyncing(on) {
+  syncingState = on;
+}
+
+function copyText(text, label = 'Copied') {
+  navigator.clipboard.writeText(text).then(() => pushToast(label)).catch(() => pushToast('Clipboard copy failed', 'error'));
+}
+
+function handleCopyAll() {
+  if (selectedIds.size > 0) {
+    const selectedLinks = links.filter(l => selectedIds.has(String(l.id)));
+    if (!selectedLinks.length) { pushToast('Nothing to copy', 'error'); return; }
+    copyText(selectedLinks.map(l => l.url).join('\n'), `Copied ${selectedLinks.length} selected link(s)!`);
+    selectedIds.clear(); 
+    render();
+    return;
+  }
+  
+  const filtered = getFiltered();
+  if (!filtered.length) { pushToast('Nothing to copy', 'error'); return; }
+  copyText(filtered.map(l => l.url).join('\n'), `Copied ${filtered.length} link(s)`);
+}
+
+function handleSortEpisode() {
+  links.sort((a, b) => {
+    const sa = parseSeasonEpisode(a.title), sb = parseSeasonEpisode(b.title);
+    if (!sa && !sb) return a.title.localeCompare(b.title);
+    if (!sa) return 1; if (!sb) return -1;
+    const sc = stripShowName(a.title).localeCompare(stripShowName(b.title));
+    if (sc !== 0) return sc;
+    if (sa.season !== sb.season) return sa.season - sb.season;
+    return sa.episode - sb.episode;
+  });
+  render(); pushToast('Sorted by season + episode');
+}
+
+function handleExactDedupe() {
+  const scope = isFilterActive() ? getFiltered() : links.filter(l => !hiddenIds.has(String(l.id)));
+  const seenUrls = new Set();
+  const removeIds = [];
+
+  for (const item of scope) {
+    const key = item.url.trim().toLowerCase();
+    if (seenUrls.has(key)) {
+      removeIds.push(item.id);
+    } else {
+      seenUrls.add(key);
+    }
+  }
+
+  if (!removeIds.length) { pushToast('No exact duplicates found'); return; }
+
+  removeIds.forEach(id => hiddenIds.add(String(id)));
+  pushToast(`Hid ${removeIds.length} exact duplicate(s) — refresh to restore`, 'ok');
+  render();
+}
+
+function handleDedupe() {
+  const score = item => {
+    const hay = `${item.title} ${item.url}`.toLowerCase();
+    for (let i = 0; i < priorityWords.length; i++) {
+        if (hay.includes(priorityWords[i])) return priorityWords.length - i;
+    }
+    return 0;
+  };
+
+  const scope = isFilterActive() ? getFiltered() : links.filter(l => !hiddenIds.has(String(l.id)));
+  const groups = new Map();
+
+  for (const item of scope) {
+    const key = episodeKey(item.title);
+    (groups.get(key) || groups.set(key, []).get(key)).push(item);
+  }
+
+  const removeIds = [];
+  for (const arr of groups.values()) {
+    if (arr.length < 2) continue;
+    let keeper;
+    if (dedupeMode === 'keep-first') {
+      keeper = arr[0]; // first as displayed in current table order
+    } else if (dedupeMode === 'keep-last') {
+      keeper = arr[arr.length - 1];
+    } else {
+      keeper = arr[0];
+      for (const item of arr) {
+        const s = score(item), ks = score(keeper);
+        if (s > ks || (s === ks && item.id < keeper.id)) keeper = item;
+      }
+    }
+    for (const item of arr) if (item.id !== keeper.id) removeIds.push(item.id);
+  }
+
+  if (!removeIds.length) { pushToast('No duplicates found'); return; }
+
+  removeIds.forEach(id => hiddenIds.add(String(id)));
+  pushToast(`Hid ${removeIds.length} duplicate(s) — refresh to restore`, 'ok');
+  render();
+}
+
+function handlePurgeFiltered() {
+  const filtered = getFiltered();
+  if (!filtered.length) { pushToast('No filtered items to drop', 'error'); return; }
+  if (!confirm(`Purge ONLY the ${filtered.length} visible filtered link(s)? This cannot be undone.`)) return;
+
+  const dropIds = filtered.map(l => String(l.id));
+  localDelete(dropIds);
+  const dropSet = new Set(dropIds);
+  links = links.filter(l => !dropSet.has(String(l.id)));
+  pushToast(`Purged ${filtered.length} filtered items`, 'ok');
+  render();
+}
+
+function handlePurge() {
+  if (!links.length) { pushToast('Vault already empty', 'error'); return; }
+  if (!confirm(`Purge ALL ${links.length} link(s)? This cannot be undone.`)) return;
+  
+  const ids = links.map(l => String(l.id));
+  localDelete(ids);
+  links = [];
+  pushToast(`Vault completely purged 🌊`, 'ok');
+  render();
+}
+
+function handleDelete(id) {
+  localDelete([id]);
+  links = links.filter(l => String(l.id) !== String(id));
+  pushToast('Link deleted', 'ok');
+  render();
+}
+
+function handleAdd() {
+  const urlEl = document.getElementById('add-url');
+  const titleEl  = document.getElementById('add-title');
+  
+  const inputVal = (urlEl.value || '').trim();
+  const validLinks = extractLinks(inputVal);
+  if (!validLinks.length) { pushToast('No valid HTTP(s) links detected in input', 'error'); return; }
+  
+  // Single mode: extract the first valid link found
+  const url = validLinks[0];
+  const title = (titleEl.value || '').trim() || parseTitle(url);
+  
+  const payload = [{ id: crypto.randomUUID(), title, url, createdAt: new Date().toISOString() }];
+  const addedLinks = localInsert(payload);
+  
+  addedLinks.forEach(computeLinkCache);
+  links = [...addedLinks, ...links];
+  
+  titleEl.value = '';
+  urlEl.value = '';
+  pushToast(`Link anchored securely! ⚓`, 'ok');
+  render();
+}
+
+function handlePasteAdd() {
+  const blob = (document.getElementById('add-url').value || '').trim();
+  const candidates = extractLinks(blob);
+  
+  if (!candidates.length) { pushToast('No valid http(s) links found', 'error'); return; }
+  
+  const existingUrls = new Set(links.map(l => l.url));
+  const toAdd = candidates.filter(s => !existingUrls.has(s));
+  const skipped = candidates.length - toAdd.length;
+  
+  if (!toAdd.length) { pushToast(`All ${skipped} link(s) already in vault`, 'ok'); return; }
+
+  const payload = toAdd.map(s => ({ 
+    id: crypto.randomUUID(), 
+    title: parseTitle(s) || s.slice(0, 160), 
+    url: s, 
+    createdAt: new Date().toISOString() 
+  }));
+  
+  const addedLinks = localInsert(payload);
+  addedLinks.forEach(computeLinkCache);
+  links = [...addedLinks, ...links];
+  
+  document.getElementById('add-url').value = '';
+  document.getElementById('add-title').value  = '';
+  pushToast(`Found & Added ${addedLinks.length} link(s) 🌊 ${skipped ? `(skipped ${skipped} dupes)` : ''}`, 'ok');
+  render();
+}
+
+// ── Bookmarklet ───────────────────────────────────────────────────────────
+(function setupBookmarklet() {
+  const code = `javascript:(function(){var a=[].slice.call(document.querySelectorAll('a[href^="http"]'));if(!a.length){alert('No links found on this page');return;}var l=a.map(function(x){return x.href;}).join('\\n');navigator.clipboard.writeText(l).then(function(){alert('Copied '+a.length+' links to clipboard! Paste them in the Vault App.');}).catch(function(){prompt('Failed to copy. Copy manually:', l);});})();`;
+  const btn = document.getElementById('bookmarklet-btn');
+  btn.href = code;
+  btn.setAttribute('draggable', 'true');
+  document.getElementById('bm-code-pre').textContent = code;
+})();
+
+// ── Title auto-fill ───────────────────────────────────────────────────────
+document.getElementById('add-url').addEventListener('input', function() {
+  const titleEl = document.getElementById('add-title');
+  if (!titleEl.value.trim()) {
+    const urls = extractLinks(this.value);
+    if (urls.length > 0) {
+      const parsed = parseTitle(urls[0]);
+      if (parsed) titleEl.value = parsed;
+    }
+  }
+});
+
+// ── Filter listeners ──────────────────────────────────────────────────────
+const debouncedRender = debounce(render, 80);
+['filter-show','filter-term','filter-or','filter-only','filter-except', 'filter-hide-count', 'filter-hide-position', 'split-count', 'split-per-group'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', debouncedRender);
+  el.addEventListener('change', render); 
+});
+
+// ── Animated Background Bubbles ───────────────────────────────────────────
+(function spawnBubbles() {
+  for (let i = 0; i < 25; i++) {
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    const size = 5 + Math.random() * 25;
+    el.style.cssText = `
+      left: ${Math.random()*100}vw;
+      width: ${size}px;
+      height: ${size}px;
+      animation-duration: ${6 + Math.random()*10}s;
+      animation-delay: ${-Math.random()*15}s;
+    `;
+    document.body.appendChild(el);
+  }
+})();
+
+// ── URL Import Handler ────────────────────────────────────────────────────
+function checkUrlForImport() {
+  if (!window.location.hash.startsWith('#import=')) return;
+  
+  try {
+    const hashData = window.location.hash.substring(8); 
+    const decoded = decodeURIComponent(hashData);
+    const importedArr = JSON.parse(decoded);
+    
+    if (Array.isArray(importedArr) && importedArr.length > 0) {
+      const validItems = importedArr
+        .filter(item => isValidLink(item.url || item.magnet))
+        .map(item => ({
+          id: crypto.randomUUID(),
+          title: item.title || parseTitle(item.url || item.magnet) || '(imported)',
+          url: item.url || item.magnet, 
+          createdAt: new Date().toISOString()
+        }));
+        
+      if (validItems.length > 0) {
+        cloudInsert(validItems).then(() => {
+          validItems.forEach(computeLinkCache);
+          links = [...validItems, ...links];
+          render();
+        });
+        window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+        setTimeout(() => pushToast(`Imported ${validItems.length} links to the vault! 🧜‍♀️`, 'ok'), 800);
+      }
+    }
+  } catch (e) {
+    setTimeout(() => pushToast('Import failed: Invalid data format', 'error'), 800);
+  }
+}
+
+</script>
+</body>
+</html>
