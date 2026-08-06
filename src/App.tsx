@@ -25,14 +25,41 @@ function isValidMagnet(v: string) {
   const s = (v || "").trim();
   return /^magnet:\?/i.test(s) && /xt=urn:btih:[a-z0-9]+/i.test(s);
 }
-function isValidHttpLink(v: string) {
+// Tagged links look like "https://...file.mkv|Some.Release.Name" (e.g. from
+// link-grabber style tools). The part after the first "|" is a plain-text tag
+// that travels alongside the URL. Tagged links are kept as-is (URL + tag
+// together) in storage; these helpers let the rest of the app reason about
+// the URL and tag separately without mutating what's stored.
+function splitTag(v: string): { url: string; tag: string } {
   const s = (v || "").trim();
-  return /^https?:\/\/[^\s]+$/i.test(s);
+  const i = s.indexOf("|");
+  if (i === -1) return { url: s, tag: "" };
+  return { url: s.slice(0, i).trim(), tag: s.slice(i + 1).trim() };
+}
+function isTaggedLink(v: string) {
+  return (v || "").includes("|");
+}
+function plainUrlOf(v: string) {
+  return splitTag(v).url;
+}
+function tagOf(v: string) {
+  return splitTag(v).tag;
+}
+function buildTagged(url: string, tag: string) {
+  const u = (url || "").trim();
+  const t = (tag || "").trim();
+  return t ? `${u}|${t}` : u;
+}
+function isValidHttpLink(v: string) {
+  const { url } = splitTag(v);
+  return /^https?:\/\/[^\s]+$/i.test(url);
 }
 function parseHttpLinkTitle(url: string) {
   if (!url) return "";
+  const { url: plain, tag } = splitTag(url);
+  if (tag) return tag.replace(/[._]+/g, " ").trim();
   try {
-    const u = new URL(url.trim());
+    const u = new URL(plain.trim());
     const path = u.pathname && u.pathname !== "/" ? u.pathname.replace(/\/+$/, "") : "";
     return path ? `${u.hostname}${path}` : u.hostname;
   } catch {
@@ -48,6 +75,14 @@ function extractHttpLinks(text: string): string[] {
     .split(/(?=https?:\/\/)/gi)
     .map((s) => s.trim().replace(/[\s,;]+$/, ""))
     .filter((s) => /^https?:\/\//i.test(s));
+}
+// Pulls both magnet links and http(s) links (tagged or plain) out of a blob
+// of text, e.g. from a bookmarklet's postMessage payload.
+function extractLinksFromText(text: string): { magnets: string[]; https: string[] } {
+  const raw = String(text || "");
+  const magnets = raw.split(/\s+/).filter(isValidMagnet);
+  const https = extractHttpLinks(raw).filter(isValidHttpLink);
+  return { magnets, https };
 }
 function parseSeasonEpisode(title: string) {
   if (!title) return null;
@@ -187,6 +222,18 @@ async function dbAddHttpLinksBulk(records: { title: string; url: string }[]): Pr
   return { list: (data || []).map(rowToHttpLink) };
 }
 
+async function dbUpdateHttpLinkUrl(id: string, url: string): Promise<void> {
+  const { error } = await supabase.from("http_links").update({ url: url.slice(0, 4000) }).eq("id", Number(id));
+  if (error) throw new Error(error.message);
+}
+
+async function dbUpdateHttpLinksUrlsBulk(updates: { id: string; url: string }[]): Promise<void> {
+  for (const u of updates) {
+    const { error } = await supabase.from("http_links").update({ url: u.url.slice(0, 4000) }).eq("id", Number(u.id));
+    if (error) throw new Error(error.message);
+  }
+}
+
 async function dbDeleteHttpLink(id: string): Promise<void> {
   const { error } = await supabase.from("http_links").delete().eq("id", Number(id));
   if (error) throw new Error(error.message);
@@ -238,6 +285,8 @@ const I = {
   Check: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>),
   Globe: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>),
   Magnet: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 15a6 6 0 0 0 12 0v-3" /><path d="M18 5v7" /><path d="M6 5v7" /><path d="M6 5h4" /><path d="M14 5h4" /></svg>),
+  Tag: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L3 3v6.59a2 2 0 0 0 .59 1.41l9.59 9.59a2 2 0 0 0 2.82 0l6.59-6.59a2 2 0 0 0 0-2.82z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>),
+  TagOff: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L3 3v6.59a2 2 0 0 0 .59 1.41l9.59 9.59a2 2 0 0 0 2.82 0l6.59-6.59a2 2 0 0 0 0-2.82z" /><circle cx="7.5" cy="7.5" r="1.5" /><line x1="2" y1="2" x2="22" y2="22" /></svg>),
 };
 
 // ── LinkRow — defined outside App so React never unmounts rows on parent re-render ──
@@ -278,21 +327,27 @@ type HttpLinkRowProps = {
   onToggle: (id: string) => void;
   onCopy: (text: string, label: string) => void;
   onDelete: (id: string) => void;
+  onUntag: (id: string) => void;
+  onRetag: (id: string) => void;
 };
-function HttpLinkRow({ l, selected, onToggle, onCopy, onDelete }: HttpLinkRowProps) {
+function HttpLinkRow({ l, selected, onToggle, onCopy, onDelete, onUntag, onRetag }: HttpLinkRowProps) {
   const date = l.created_date ? new Date(l.created_date).toLocaleString() : "";
+  const tag = tagOf(l.url);
   return (
     <li className={`link-row${selected ? " selected" : ""}`} onClick={() => onToggle(l.id)}>
       <div className="link-row-inner">
         <div className="link-meta">
           <div className="link-title-wrap">
             <span className="link-title">{l.title || "(untitled)"}</span>
+            {tag && <span className="ep-badge">TAGGED</span>}
           </div>
           <p className="link-magnet">{l.url}</p>
           <p className="link-date">{date}</p>
         </div>
         <div className="link-actions" onClick={(e) => e.stopPropagation()}>
           <button className="icon-btn" onClick={() => onCopy(l.url, "Link copied")} aria-label="Copy link"><I.Copy /></button>
+          {tag && <button className="icon-btn" onClick={() => onUntag(l.id)} aria-label="Untag link"><I.TagOff /></button>}
+          <button className="icon-btn" onClick={() => onRetag(l.id)} aria-label={tag ? "Retag link" : "Add tag"}><I.Tag /></button>
           <button className="icon-btn del" onClick={() => onDelete(l.id)} aria-label="Delete link"><I.Trash /></button>
         </div>
       </div>
@@ -318,6 +373,7 @@ export default function App() {
   const [hFilter, setHFilter] = useState("");
   const [addHttpTitle, setAddHttpTitle] = useState("");
   const [addHttpUrl, setAddHttpUrl] = useState("");
+  const [httpTagFilter, setHttpTagFilter] = useState("");
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastIdRef = useRef(0);
@@ -448,6 +504,70 @@ export default function App() {
   }, [pushToast]);
 
   useEffect(() => { fetchHttpLinks(); }, [fetchHttpLinks]);
+
+  // ── Bookmarklet ingest (window.postMessage) ─────────────────────────────
+  // A bookmarklet running on another page can postMessage links in here, e.g.:
+  //   window.opener.postMessage({ source: "magnet-vault-bookmarklet", text: "..." }, "*")
+  // `text` may contain magnet links and/or http(s) links (plain or tagged,
+  // e.g. "https://...mkv|Release.Name") mixed together, one per line or blob.
+  const handleBookmarkletText = useCallback(async (text: string) => {
+    const { magnets, https } = extractLinksFromText(text);
+    if (!magnets.length && !https.length) {
+      pushToast("Bookmarklet: no valid links found", "error");
+      return;
+    }
+    if (magnets.length) {
+      const btihOf = (m: string) => {
+        const match = m.match(/xt=urn:btih:([a-zA-Z0-9]+)/i);
+        return match ? match[1].toLowerCase() : m.trim().toLowerCase();
+      };
+      const existingHashes = new Set(allLinks.map((l) => btihOf(l.magnet)));
+      const toAdd = magnets.filter((s) => !existingHashes.has(btihOf(s)));
+      if (toAdd.length) {
+        try {
+          const payload = toAdd.map((s) => ({ title: parseMagnetTitle(s) || s.slice(0, 160), magnet: s }));
+          await dbAddLinksBulk(payload);
+          await fetchLinks();
+          pushToast(`Bookmarklet: added ${toAdd.length} magnet link(s)`);
+        } catch (e: any) { pushToast("Bookmarklet magnet add failed: " + e.message, "error"); }
+      }
+    }
+    if (https.length) {
+      const keyOf = (u: string) => plainUrlOf(u).toLowerCase().replace(/\/+$/, "");
+      const existingKeys = new Set(allHttpLinks.map((l) => keyOf(l.url)));
+      const seenInBatch = new Set<string>();
+      const toAdd = https.filter((s) => {
+        const k = keyOf(s);
+        if (existingKeys.has(k) || seenInBatch.has(k)) return false;
+        seenInBatch.add(k);
+        return true;
+      });
+      if (toAdd.length) {
+        try {
+          const payload = toAdd.map((s) => ({ title: parseHttpLinkTitle(s) || s.slice(0, 160), url: s }));
+          await dbAddHttpLinksBulk(payload);
+          await fetchHttpLinks();
+          pushToast(`Bookmarklet: added ${toAdd.length} http link(s)`);
+        } catch (e: any) { pushToast("Bookmarklet http add failed: " + e.message, "error"); }
+      }
+    }
+  }, [allLinks, allHttpLinks, fetchLinks, fetchHttpLinks, pushToast]);
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      let data: any = event.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch { data = { text: data }; }
+      }
+      if (!data || typeof data !== "object") return;
+      if (data.source !== "magnet-vault-bookmarklet") return;
+      const text = String(data.text ?? data.links ?? "");
+      if (!text.trim()) return;
+      handleBookmarkletText(text);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [handleBookmarkletText]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
   function toggleSelect(id: string) {
@@ -640,7 +760,7 @@ export default function App() {
 
   // ── Actions — HTTP links ─────────────────────────────────────────────────
   function urlKeyOf(u: string) {
-    return (u || "").trim().toLowerCase().replace(/\/+$/, "");
+    return plainUrlOf(u).toLowerCase().replace(/\/+$/, "");
   }
 
   function toggleSelectHttp(id: string) {
@@ -667,6 +787,74 @@ export default function App() {
     }
     if (!filteredHttpLinks.length) return pushToast("Nothing to copy", "error");
     copyText(filteredHttpLinks.map((l) => l.url).join("\n"), `Copied ${filteredHttpLinks.length} link(s)`);
+  }
+
+  function httpCopyScope(): HttpLink[] {
+    if (selectedHttpIds.size > 0) return allHttpLinks.filter((l) => selectedHttpIds.has(l.id));
+    return filteredHttpLinks;
+  }
+
+  function handleHttpCopyPlain() {
+    const sel = httpCopyScope();
+    if (!sel.length) return pushToast("Nothing to copy", "error");
+    copyText(sel.map((l) => plainUrlOf(l.url)).join("\n"), `Copied ${sel.length} link(s) (plain, no tag)`);
+    if (selectedHttpIds.size > 0) setSelectedHttpIds(new Set());
+  }
+
+  function handleHttpCopyTag() {
+    const sel = httpCopyScope();
+    if (!sel.length) return pushToast("Nothing to copy", "error");
+    copyText(sel.map((l) => buildTagged(plainUrlOf(l.url), tagOf(l.url) || l.title)).join("\n"), `Copied ${sel.length} link(s) (tagged)`);
+    if (selectedHttpIds.size > 0) setSelectedHttpIds(new Set());
+  }
+
+  async function handleHttpUntag(id: string) {
+    const item = allHttpLinks.find((l) => l.id === id);
+    if (!item) return;
+    const plain = plainUrlOf(item.url);
+    if (plain === item.url) return; // already untagged
+    setHttpSyncing(true);
+    try {
+      await dbUpdateHttpLinkUrl(id, plain);
+      setAllHttpLinks((prev) => prev.map((l) => (l.id === id ? { ...l, url: plain } : l)));
+      pushToast("Untagged");
+    } catch (e: any) { pushToast("Untag failed: " + e.message, "error"); }
+    finally { setHttpSyncing(false); }
+  }
+
+  async function handleHttpRetag(id: string) {
+    const item = allHttpLinks.find((l) => l.id === id);
+    if (!item) return;
+    const { url: plain, tag } = splitTag(item.url);
+    const next = window.prompt("Tag for this link (leave blank to remove tag):", tag);
+    if (next === null) return; // cancelled
+    const newUrl = buildTagged(plain, next);
+    if (newUrl === item.url) return;
+    setHttpSyncing(true);
+    try {
+      await dbUpdateHttpLinkUrl(id, newUrl);
+      setAllHttpLinks((prev) => prev.map((l) => (l.id === id ? { ...l, url: newUrl } : l)));
+      pushToast(next.trim() ? "Tag updated" : "Untagged");
+    } catch (e: any) { pushToast("Retag failed: " + e.message, "error"); }
+    finally { setHttpSyncing(false); }
+  }
+
+  async function handleHttpUntagFilter() {
+    const phrase = httpTagFilter.trim().toLowerCase();
+    if (!phrase) return pushToast("Enter a keyword first", "error");
+    const matches = allHttpLinks.filter((l) => isTaggedLink(l.url) && `${l.title} ${l.url}`.toLowerCase().includes(phrase));
+    if (!matches.length) return pushToast("No tagged links match that keyword", "error");
+    setHttpSyncing(true);
+    try {
+      const updates = matches.map((l) => ({ id: l.id, url: plainUrlOf(l.url) }));
+      await dbUpdateHttpLinksUrlsBulk(updates);
+      setAllHttpLinks((prev) => prev.map((l) => {
+        const u = updates.find((x) => x.id === l.id);
+        return u ? { ...l, url: u.url } : l;
+      }));
+      pushToast(`Untagged ${updates.length} link(s)`);
+    } catch (e: any) { pushToast("Untag failed: " + e.message, "error"); }
+    finally { setHttpSyncing(false); }
   }
 
   function handleHttpSort() {
@@ -795,6 +983,16 @@ export default function App() {
     if (!matches.length) return pushToast("No links match that phrase", "error");
     setPhraseHiddenIds((h) => { const n = new Set(h); matches.forEach((l) => n.add(l.id)); return n; });
     pushToast(`Hid ${matches.length} matching link(s)`);
+  }
+  function handleHideAboveBelow(direction: "above" | "below") {
+    const phrase = hidePhrase.trim().toLowerCase();
+    if (!phrase) return pushToast("Enter a phrase first", "error");
+    const scope = filteredLinks.length ? filteredLinks : allLinks;
+    const idx = scope.findIndex((l) => `${l.title} ${l.magnet}`.toLowerCase().includes(phrase));
+    if (idx === -1) return pushToast("No links match that phrase", "error");
+    const slice = direction === "above" ? scope.slice(0, idx + 1) : scope.slice(idx);
+    setPhraseHiddenIds((h) => { const n = new Set(h); slice.forEach((l) => n.add(l.id)); return n; });
+    pushToast(`Hid ${slice.length} link(s) (${direction === "above" ? "that + above" : "that + below"})`);
   }
   function handleUnhideAll() {
     if (!phraseHiddenIds.size) return pushToast("Nothing hidden", "error");
@@ -996,6 +1194,8 @@ export default function App() {
                 <input type="text" className="no-icon" value={hidePhrase} onChange={(e) => setHidePhrase(e.target.value)} placeholder="Phrase to hide (e.g. CAM)" onKeyDown={(e) => { if (e.key === "Enter") handleHidePhrase(); }} />
               </div>
               <button className="btn" onClick={handleHidePhrase}><I.EyeOff />Hide matches</button>
+              <button className="btn" onClick={() => handleHideAboveBelow("above")}><I.EyeOff />Hide that + above</button>
+              <button className="btn" onClick={() => handleHideAboveBelow("below")}><I.EyeOff />Hide that + below</button>
             </div>
           </div>
         </details>
@@ -1036,7 +1236,9 @@ export default function App() {
 
         {/* Actions */}
         <div className="action-bar">
-          <button className={`btn${selectedHttpIds.size > 0 ? " btn-primary" : ""}`} disabled={httpSyncing} onClick={handleHttpCopyAll}><I.Copy />{selectedHttpIds.size > 0 ? `Copy Selected (${selectedHttpIds.size})` : "Copy All"}</button>
+          <button className={`btn${selectedHttpIds.size > 0 ? " btn-primary" : ""}`} disabled={httpSyncing} onClick={handleHttpCopyAll}><I.Copy />{selectedHttpIds.size > 0 ? `Copy Selected (${selectedHttpIds.size})` : "Copy All"} (as is)</button>
+          <button className="btn" disabled={httpSyncing} onClick={handleHttpCopyTag}><I.Tag />Copy as Tag</button>
+          <button className="btn" disabled={httpSyncing} onClick={handleHttpCopyPlain}><I.TagOff />Copy as Plain</button>
           <button className="btn" disabled={httpSyncing} onClick={handleHttpSort}><I.Sort />Sort A–Z</button>
           <button className="btn" disabled={httpSyncing} onClick={handleHttpExactDedupe}><I.Exact />Dedupe</button>
           <button className="btn" disabled={httpSyncing} onClick={fetchHttpLinks}><I.Sync spin={httpSyncing} />Sync</button>
@@ -1051,7 +1253,7 @@ export default function App() {
             </div>
           ) : (
             <ul className="link-list-wrap" role="list">
-              {filteredHttpLinks.map((l) => <HttpLinkRow key={l.id} l={l} selected={selectedHttpIds.has(l.id)} onToggle={toggleSelectHttp} onCopy={copyText} onDelete={handleHttpDelete} />)}
+              {filteredHttpLinks.map((l) => <HttpLinkRow key={l.id} l={l} selected={selectedHttpIds.has(l.id)} onToggle={toggleSelectHttp} onCopy={copyText} onDelete={handleHttpDelete} onUntag={handleHttpUntag} onRetag={handleHttpRetag} />)}
             </ul>
           )}
         </div>
@@ -1060,14 +1262,21 @@ export default function App() {
         <details className="mv-collapse" open>
           <summary><I.Chevron /><svg style={{ width: "0.85rem", height: "0.85rem", color: "var(--mv-violet)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5v14" /></svg>Add Links Manually</summary>
           <div className="collapsible-body">
-            <p className="hint">Paste one or more http(s) links. Links pasted back-to-back with no space between them (e.g. "https://buffer.comhttps://outlook.com") are split automatically.</p>
+            <p className="hint">Paste one or more http(s) links. Links pasted back-to-back with no space between them (e.g. "https://buffer.comhttps://outlook.com") are split automatically. Tagged links (e.g. "https://...file.mkv|Release.Name") are supported too and are kept as-is, tag included.</p>
             <div className="add-form">
-              <div className="input-wrap"><input type="text" className="no-icon" value={addHttpTitle} onChange={(e) => setAddHttpTitle(e.target.value)} placeholder="Title (auto-filled from URL if blank)" /></div>
-              <textarea rows={3} value={addHttpUrl} onChange={(e) => autoFillHttpTitle(e.target.value)} placeholder="https://..." />
+              <div className="input-wrap"><input type="text" className="no-icon" value={addHttpTitle} onChange={(e) => setAddHttpTitle(e.target.value)} placeholder="Title (auto-filled from URL/tag if blank)" /></div>
+              <textarea rows={3} value={addHttpUrl} onChange={(e) => autoFillHttpTitle(e.target.value)} placeholder="https://... or https://...|Tagged.Name" />
               <div className="add-btn-row">
                 <button className="btn btn-primary" disabled={httpSyncing} onClick={handleHttpAdd}><I.Plus />Add</button>
                 <button className="btn" disabled={httpSyncing} onClick={handleHttpPasteAdd}><I.Dedupe />Add all pasted</button>
               </div>
+            </div>
+            <p className="hint" style={{ marginTop: "0.85rem" }}>Untag any tagged link whose title or URL contains a keyword (case-insensitive). Only the tag is removed — the plain URL stays.</p>
+            <div className="add-btn-row">
+              <div className="input-wrap" style={{ flex: 1 }}>
+                <input type="text" className="no-icon" value={httpTagFilter} onChange={(e) => setHttpTagFilter(e.target.value)} placeholder="Keyword to untag (e.g. EDGE2020)" onKeyDown={(e) => { if (e.key === "Enter") handleHttpUntagFilter(); }} />
+              </div>
+              <button className="btn" disabled={httpSyncing} onClick={handleHttpUntagFilter}><I.TagOff />Untag matches</button>
             </div>
           </div>
         </details>
